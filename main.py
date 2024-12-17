@@ -9,18 +9,33 @@ API_KEY = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=API_KEY)
 
-if "input_value" not in st.session_state:
-    st.session_state.input_value = ""
+st.title("Chat avec OpenAI")
 
-def submit():
-    try:
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": st.session_state.input_value}]
-        )
-        st.write(completion.choices[0].message.content)
-        st.session_state.input_value = ""
-    except Exception as e:
-        st.error(f"Erreur : {e}")
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-st.text_input("Entrez un message :", key="input_value", on_change=submit)
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
+
+def new_message(content: str):
+    with st.chat_message("user"):
+        st.write(content)
+    st.session_state.messages.append({"role": "user", "content": content})
+
+    with st.chat_message("assistant"):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=st.session_state.messages
+            )
+            assistant_reply = response.choices[0].message.content
+            st.write(assistant_reply)
+            st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
+        except Exception as e:
+            st.error(f"Erreur : {e}")
+
+value = st.chat_input("Votre message ici")
+
+if value:
+    new_message(value)
